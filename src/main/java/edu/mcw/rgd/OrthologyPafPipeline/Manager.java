@@ -13,9 +13,12 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.core.io.FileSystemResource;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -42,7 +45,7 @@ public class Manager {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
-        
+
         DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
         new XmlBeanDefinitionReader(bf).loadBeanDefinitions(new FileSystemResource("properties/AppConfigure.xml"));
         Manager manager = (Manager) bf.getBean("main");
@@ -73,18 +76,67 @@ public class Manager {
         manager.logger.info("");
     }
 
+    /*
+    Col	Type	Description
+1	string	Query sequence name
+2	int	Query sequence length
+3	int	Query start (0-based; BED-like; closed)
+4	int	Query end (0-based; BED-like; open)
+5	char	Relative strand: "+" or "-"
+6	string	Target sequence name
+7	int	Target sequence length
+8	int	Target start on original strand (0-based)
+9	int	Target end on original strand (0-based)
+10	int	Number of residue matches
+11	int	Alignment block length
+12	int	Mapping quality (0-255; 255 for missing)
+
+     */
+
     public void run(int mapKey1, int mapKey2) throws Exception {
+
+        MapDAO mdao = new MapDAO();
+
+        Map<String,Integer> chrLen1 = mdao.getChromosomeSizes(372);
+        Map<String,Integer> chrLen2 = mdao.getChromosomeSizes(38);
 
         OrthologDAO odao = new OrthologDAO();
         List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(3,1,372,38);
+        FileWriter fw = new FileWriter(new File("/Users/jdepons/tmp/dump.out"));
 
         for (MappedOrtholog mo: ortho) {
-            System.out.println(mo.getSrcRgdId());
-        }
 
+            String row = "";
+
+            row += "chr" + mo.getSrcChromosome() + "\t";
+            row += chrLen1.get(mo.getSrcChromosome()) + "\t";
+            row += mo.getSrcStartPos() + "\t";
+            row += mo.getSrcStopPos() + "\t";
+
+            if (mo.getSrcStrand().equals(mo.getDestStrand())) {
+                row += "+" + "\t";
+            }else {
+                row += "-" + "\t";
+            }
+
+            row += "chr" + mo.getDestChromosome() + "\t";
+            row += chrLen1.get(mo.getDestChromosome()) + ",\t";
+            row += mo.getDestStartPos() + "\t";
+            row += mo.getDestStopPos() + "\t";
+
+            long residueMatches = mo.getSrcStopPos() - mo.getSrcStartPos();
+
+            row += residueMatches + "\t";
+            row += residueMatches + "\t";
+            row += "255";
+            System.out.println(row);
+
+            fw.write(row + "\n");
+
+        }
+        fw.close();
 
     }
-
 
         /**
          * print connection information, download the genes-diseases file from CTD, parse it, QC it and load the annotations into RGD
