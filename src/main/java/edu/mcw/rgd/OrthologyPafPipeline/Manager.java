@@ -60,13 +60,16 @@ public class Manager {
             System.exit(0);
         }
 
-        int mapKey1 = SpeciesType.parse(args[0]);
-        int mapKey2 = SpeciesType.parse(args[1]);
+        String assembly1 = args[0];
+        int mapKey1 = Integer.parseInt(args[1]);
+        String assembly2 = args[2];
+        int mapKey2 = Integer.parseInt(args[3]);
+        String outputDirectory = args[4];
 
         Date time0 = Calendar.getInstance().getTime();
 
         try {
-                manager.run(mapKey1, mapKey2);
+                manager.run(assembly1, mapKey1, assembly2, mapKey2, outputDirectory);
         } catch(Exception e) {
             Utils.printStackTrace(e, manager.logger);
             throw e;
@@ -93,113 +96,55 @@ public class Manager {
 
      */
 
-    public void run(int mapKey1, int mapKey2) throws Exception {
+    public void run(String assembly1, int mapKey1, String assembly2, int mapKey2, String outputDirectory) throws Exception {
 
         MapDAO mdao = new MapDAO();
 
-        Map<String,Integer> chrLen1 = mdao.getChromosomeSizes(372);
-        Map<String,Integer> chrLen2 = mdao.getChromosomeSizes(38);
+        Map<String,Integer> chrLen1 = mdao.getChromosomeSizes(mapKey1);
+        Map<String,Integer> chrLen2 = mdao.getChromosomeSizes(mapKey2);
 
         OrthologDAO odao = new OrthologDAO();
-        List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(3,1,372,38);
-        FileWriter fw = new FileWriter(new File("/Users/jdepons/tmp/dump.out"));
+        List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(3,1,mapKey1,mapKey2);
 
+        FileWriter fw = new FileWriter(new File(outputDirectory + "/" + assembly1 +".bed"));
         for (MappedOrtholog mo: ortho) {
-
             String row = "";
-
-            row += "chr" + mo.getSrcChromosome() + "\t";
-            row += chrLen1.get(mo.getSrcChromosome()) + "\t";
+            row += "Chr" + mo.getSrcChromosome() + "\t";
             row += mo.getSrcStartPos() + "\t";
             row += mo.getSrcStopPos() + "\t";
+            row += mo.getSrcGeneSymbol() + "\t";
+            row += "0\t";
+            row += mo.getSrcStrand();
+            fw.write(row + "\n");
+        }
+        fw.close();
 
-            if (mo.getSrcStrand().equals(mo.getDestStrand())) {
-                row += "+" + "\t";
-            }else {
-                row += "-" + "\t";
-            }
-
-            row += "chr" + mo.getDestChromosome() + "\t";
-            row += chrLen1.get(mo.getDestChromosome()) + ",\t";
+        fw = new FileWriter(new File(outputDirectory + "/" + assembly2 +".bed"));
+        for (MappedOrtholog mo: ortho) {
+            String row = "";
+            row += "Chr" + mo.getDestChromosome() + "\t";
             row += mo.getDestStartPos() + "\t";
             row += mo.getDestStopPos() + "\t";
-
-            long residueMatches = mo.getSrcStopPos() - mo.getSrcStartPos();
-
-            row += residueMatches + "\t";
-            row += residueMatches + "\t";
-            row += "255";
-            System.out.println(row);
-
+            row += mo.getDestGeneSymbol() + "\t";
+            row += "0\t";
+            row += mo.getDestStrand();
             fw.write(row + "\n");
+        }
+        fw.close();
 
+        fw = new FileWriter(new File(outputDirectory + "/" + assembly1 + "-" + assembly2 +".anchors"));
+        for (MappedOrtholog mo: ortho) {
+            String row = "";
+            row += mo.getSrcGeneSymbol() + "\t";
+            row += mo.getDestGeneSymbol() + "\t";
+            row += "100\t";
+            fw.write(row + "\n");
         }
         fw.close();
 
     }
 
-        /**
-         * print connection information, download the genes-diseases file from CTD, parse it, QC it and load the annotations into RGD
-         * @throws Exception
-         */
-    public void run(int speciesTypeKey, Date runDate) throws Exception {
 
-        dao.init(runDate, this.transitiveOrthologType, this.transitiveOrthologPipelineId, speciesTypeKey);
-        Process process = new Process(runDate, this.transitiveOrthologType, this.transitiveOrthologPipelineId, this.xrefDataSrc, this.xrefDataSet);
-
-        //get subject species human orthologs
-        //get human -other species orthologs for the listed subject species ortholog destination human genes
-        //  if subject species doesn't have transitive ortholog in the "subject species - human - other species" link
-        //        add new two reciprocal transitive orthologs
-        //  else if subject species has transitive ortholog for that species and don't have other ortholog types
-        //        update last modified date for reciprocal orthologs
-        // delete all transitive orthologs that don't have the current last modified date
-
-        List<Ortholog> subjectSpeciesHumanOrthologs = dao.getSubjectSpeciesHumanOrthologs();
-
-        logger.info("");
-        logger.info("Orthologs between " + SpeciesType.getCommonName(speciesTypeKey) + " and Human : " + subjectSpeciesHumanOrthologs.size());
-
-        AtomicInteger[] counters = new AtomicInteger[2];
-        for( int i=0; i<counters.length; i++ ) {
-            counters[i] = new AtomicInteger(0);
-        }
-
-        subjectSpeciesHumanOrthologs.parallelStream().forEach( sSHO -> {
-
-            try {
-                // get human-other species orthologs
-                List<Ortholog> humanOtherSpeciesOrthologs = dao.getHumanOtherSpeciesOrthologs(sSHO.getDestRgdId());
-                for (Ortholog hOSO : humanOtherSpeciesOrthologs) {
-
-                    // get subject species - other species orthologs through subject species - human orthologs information
-                    // this list consists of transitive ortholog candidates
-                    List<Ortholog> subjectSpeciesOtherSpeciesOrthologs = dao.getOrthologs(sSHO, hOSO);
-
-                    // if there is not any subject species-other species ortholog then creates new reciprocal transitive orthologs
-                    if (subjectSpeciesOtherSpeciesOrthologs.size() == 0) {
-                        dao.insertOrthologs(process.createReciprocalTransitiveOrthologs(sSHO.getSrcRgdId(), hOSO.getDestRgdId()));
-                        counters[INSERT_COUNTER].getAndAdd(2);
-                    }
-                    // if there is not any non-transitive ortholog between the subject species and other species
-                    // update last modified dates of the transitive orthologs
-                    else if (!process.haveNonTransitiveOrthologs(subjectSpeciesOtherSpeciesOrthologs)) {
-                        //if the transitive ortholog is created before this run then we want to update it otherwise no need to
-                        dao.updateLastModified(subjectSpeciesOtherSpeciesOrthologs);
-                        counters[UPDATE_COUNTER].getAndAdd(2);
-                    }
-                }
-            } catch(Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        logger.info("Updated reciprocal transitive orthologs : " + counters[UPDATE_COUNTER]);
-        logger.info("Created reciprocal transitive orthologs : " + counters[INSERT_COUNTER]);
-
-        // finally delete the untouched transitive orthologs after newly introduced genuine orthologs from other sources
-        logger.info("Deleted unmodified transitive orthologs : " + dao.deleteUnmodifiedTransitiveOrthologs());
-    }
 
     public void setVersion(String version) {
         this.version = version;
@@ -209,13 +154,6 @@ public class Manager {
         return version;
     }
 
-    public void setTransitiveOrthologPipelineId(int transitiveOrthologPipelineId) {
-        this.transitiveOrthologPipelineId = transitiveOrthologPipelineId;
-    }
-
-    public int getTransitiveOrthologPipelineId() {
-        return transitiveOrthologPipelineId;
-    }
 
     public void setXrefDataSrc(String xrefDataSrc) {
         this.xrefDataSrc = xrefDataSrc;
