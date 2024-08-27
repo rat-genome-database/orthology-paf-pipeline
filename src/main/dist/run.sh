@@ -5,7 +5,7 @@
 
 . /etc/profile
 
-APPNAME=transitive-ortholog-pipeline
+APPNAME=orthology-paf-pipeline
 APPDIR=/home/rgddata/pipelines/$APPNAME
 
 cd $APPDIR
