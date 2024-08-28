@@ -44,9 +44,6 @@ public class Manager {
      */
     public static void main(String[] args) throws Exception {
 
-
-
-
         LinkedHashMap<String, Integer> assemblies = new LinkedHashMap<String, Integer>();
         assemblies.put("mRatBN7.2",372);
         assemblies.put("Rnor_6.0",360);
@@ -77,18 +74,14 @@ public class Manager {
         manager.logger.info(manager.getVersion());
 
 
-        if( args == null || args.length < 2 ){
+        if( args == null || args.length < 1 ){
             System.out.println("");
             System.out.println("            Missing parameter!                  ");
-            System.out.println("----------- Run with subject species type KEY other than Human! -----------");
+            System.out.println("----------- Run with output directory specified -----------");
             System.exit(0);
         }
 
-        String assembly1 = args[0];
-        int mapKey1 = Integer.parseInt(args[1]);
-        String assembly2 = args[2];
-        int mapKey2 = Integer.parseInt(args[3]);
-        String outputDirectory = args[4];
+        String outputDirectory = args[0];
 
         Date time0 = Calendar.getInstance().getTime();
 
