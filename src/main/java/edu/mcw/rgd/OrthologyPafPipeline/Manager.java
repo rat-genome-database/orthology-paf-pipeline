@@ -3,6 +3,7 @@ package edu.mcw.rgd.OrthologyPafPipeline;
 import edu.mcw.rgd.dao.impl.GeneDAO;
 import edu.mcw.rgd.dao.impl.MapDAO;
 import edu.mcw.rgd.dao.impl.OrthologDAO;
+import edu.mcw.rgd.datamodel.MappedGene;
 import edu.mcw.rgd.datamodel.MappedOrtholog;
 import edu.mcw.rgd.datamodel.Ortholog;
 import edu.mcw.rgd.datamodel.SpeciesType;
@@ -88,6 +89,15 @@ public class Manager {
         HashMap<Integer,Boolean> processed = new HashMap<Integer,Boolean>();
 
         try {
+
+            //generate the bed files
+            for (Map.Entry<String, Integer> entry: assemblies.entrySet()) {
+                String key = entry.getKey();
+                Integer value = entry.getValue();
+                manager.generateBedFile(key, value, outputDirectory);
+            }
+
+
             for (Map.Entry<String, Integer> entry: assemblies.entrySet()) {
                 String key = entry.getKey();
                 Integer value = entry.getValue();
@@ -123,6 +133,34 @@ public class Manager {
         manager.logger.info("");
     }
 
+    public void generateBedFile(String assembly, int mapKey, String outputDirectory) throws Exception{
+
+        FileWriter fw = new FileWriter(new File(outputDirectory + "/" + assembly +".bed"));
+
+        System.out.println("Generating bed for " + assembly);
+        GeneDAO gdao = new GeneDAO();
+        System.out.println("getting genes for " + assembly);
+        List<MappedGene> mg = gdao.getActiveMappedGenes(mapKey);
+
+        for (MappedGene mo: mg) {
+            String row = "";
+
+            if (mo.getChromosome().startsWith("N")) {
+                row += "Chr" + mo.getChromosome() + "\t";
+            }else {
+                row += "Chr" + mo.getChromosome() + "\t";
+            }
+            row += mo.getStart() + "\t";
+            row += mo.getStop() + "\t";
+            row += mo.getGene().getSymbol() + "\t";
+            row += "0\t";
+            row += mo.getStrand();
+            fw.write(row + "\n");
+        }
+        fw.close();
+    }
+
+
     /*
     Col	Type	Description
 1	string	Query sequence name
@@ -149,35 +187,9 @@ public class Manager {
 
         OrthologDAO odao = new OrthologDAO();
 
+        System.out.println("getting orthologs");
         List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(MapManager.getInstance().getMap(mapKey1).getSpeciesTypeKey(),MapManager.getInstance().getMap(mapKey2).getSpeciesTypeKey(),mapKey1,mapKey2);
-
-        FileWriter fw = new FileWriter(new File(outputDirectory + "/" + assembly1 +".bed"));
-        for (MappedOrtholog mo: ortho) {
-            String row = "";
-            row += "Chr" + mo.getSrcChromosome() + "\t";
-            row += mo.getSrcStartPos() + "\t";
-            row += mo.getSrcStopPos() + "\t";
-            row += mo.getSrcGeneSymbol() + "\t";
-            row += "0\t";
-            row += mo.getSrcStrand();
-            fw.write(row + "\n");
-        }
-        fw.close();
-
-        fw = new FileWriter(new File(outputDirectory + "/" + assembly2 +".bed"));
-        for (MappedOrtholog mo: ortho) {
-            String row = "";
-            row += "Chr" + mo.getDestChromosome() + "\t";
-            row += mo.getDestStartPos() + "\t";
-            row += mo.getDestStopPos() + "\t";
-            row += mo.getDestGeneSymbol() + "\t";
-            row += "0\t";
-            row += mo.getDestStrand();
-            fw.write(row + "\n");
-        }
-        fw.close();
-
-        fw = new FileWriter(new File(outputDirectory + "/" + assembly1 + "-" + assembly2 +".anchors"));
+        FileWriter fw = new FileWriter(new File(outputDirectory + "/" + assembly1 + "-" + assembly2 +".anchors"));
         for (MappedOrtholog mo: ortho) {
             String row = "";
             row += mo.getSrcGeneSymbol() + "\t";
@@ -191,7 +203,7 @@ String orthologyTemplate = """
         {
             "type":"SyntenyTrack",
                 "trackId":"assembly12assembly2.anchors",
-                "name":"assembly1-assembly2 orthology",
+                "name":"trackName",
                 "assemblyNames": [
                     "assembly1",
                     "assembly2"
@@ -203,7 +215,7 @@ String orthologyTemplate = """
             "type":"MCScanAnchorsAdapter",
                     "mcscanAnchorsLocation":{
                     "locationType":"UriLocation",
-                    "uri":"assembly1-assembly2.anchors"
+                    "uri":"assembly1/assembly1-assembly2.anchors"
             },
             "bed1Location":{
                 "locationType":"UriLocation",
@@ -241,8 +253,10 @@ String orthologyTemplate = """
 
 """;
 
-    orthologyTemplate = orthologyTemplate.replaceAll("assembly1",assembly1);
+        String track = assembly1 + " (" + SpeciesType.getCommonName(MapManager.getInstance().getMap(mapKey1).getSpeciesTypeKey()) + ") - " + assembly2 + " (" +  SpeciesType.getCommonName(MapManager.getInstance().getMap(mapKey2).getSpeciesTypeKey()) + ")";
+        orthologyTemplate = orthologyTemplate.replaceAll("assembly1",assembly1);
         orthologyTemplate = orthologyTemplate.replaceAll("assembly2",assembly2);
+        orthologyTemplate = orthologyTemplate.replaceAll("trackName",track);
         fw = new FileWriter(new File(outputDirectory + "/" + assembly1 + "-" + assembly2 +".json"));
         fw.write(orthologyTemplate);
         fw.close();
