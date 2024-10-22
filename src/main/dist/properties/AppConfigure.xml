@@ -1,0 +1,14 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+	<bean id="main" class="edu.mcw.rgd.OrthologyPafPipeline.Manager">
+        <property name="version" value="Orthology Paf Pipeline   -- build Aug 27, 2024" />
+
+		<property name="xrefDataSrc" value="Orthology PAF Pipeline" />
+		<property name="xrefDataSet" value="Orthology PAF Pipeline" />
+		<property name="dao" ref="dao" />
+	</bean>
+
+	<bean id="dao" class="edu.mcw.rgd.OrthologyPafPipeline.Dao" >
+		<property name="decisionDurationInMinForOrthologDeletion" value="20" />
+	</bean>
+</beans>
