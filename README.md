@@ -1,2 +1,2 @@
-# orthology-paf-pipeline
-Generate PAF files for Jbrowse2 based on orthology
+# transitive-ortholog-pipeline
+Generate transitive orthologs for all species based on HUMAN orthologs.
