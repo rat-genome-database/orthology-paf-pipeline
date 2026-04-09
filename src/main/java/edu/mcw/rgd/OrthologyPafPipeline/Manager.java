@@ -1,7 +1,6 @@
 package edu.mcw.rgd.OrthologyPafPipeline;
 
 import edu.mcw.rgd.dao.impl.GeneDAO;
-import edu.mcw.rgd.dao.impl.MapDAO;
 import edu.mcw.rgd.dao.impl.OrthologDAO;
 import edu.mcw.rgd.datamodel.MappedGene;
 import edu.mcw.rgd.datamodel.MappedOrtholog;
@@ -145,13 +144,15 @@ public class Manager {
 
     public void generateBedFile(String assembly, int mapKey, String outputDirectory) throws Exception{
 
-        FileWriter fw = new FileWriter(new File(outputDirectory + "/" + assembly +".bed"));
+        String bedFile = outputDirectory + "/" + assembly + ".bed";
+        String species = SpeciesType.getCommonName(MapManager.getInstance().getMap(mapKey).getSpeciesTypeKey());
 
-        System.out.println("Generating bed for " + assembly);
+        logger.info("BED: "+species+" "+assembly+" (map_key="+mapKey+")");
+
         GeneDAO gdao = new GeneDAO();
-        System.out.println("getting genes for " + assembly);
         List<MappedGene> mg = gdao.getActiveMappedGenes(mapKey);
 
+        FileWriter fw = new FileWriter(new File(bedFile));
         for (MappedGene mo: mg) {
             String row = "";
 
@@ -168,6 +169,8 @@ public class Manager {
             fw.write(row + "\n");
         }
         fw.close();
+
+        logger.info("     genes written: "+Utils.formatThousands(mg.size())+"  -> "+bedFile);
     }
 
 
@@ -190,16 +193,19 @@ public class Manager {
 
     public void run(String assembly1, int mapKey1, String assembly2, int mapKey2, String outputDirectory) throws Exception {
 
-        MapDAO mdao = new MapDAO();
+        int speciesKey1 = MapManager.getInstance().getMap(mapKey1).getSpeciesTypeKey();
+        int speciesKey2 = MapManager.getInstance().getMap(mapKey2).getSpeciesTypeKey();
+        String species1 = SpeciesType.getCommonName(speciesKey1);
+        String species2 = SpeciesType.getCommonName(speciesKey2);
+        String pairLabel = species1+" "+assembly1+" <=> "+species2+" "+assembly2;
 
-        Map<String,Integer> chrLen1 = mdao.getChromosomeSizes(mapKey1);
-        Map<String,Integer> chrLen2 = mdao.getChromosomeSizes(mapKey2);
+        logger.info("PAIR: "+pairLabel);
 
         OrthologDAO odao = new OrthologDAO();
+        List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(speciesKey1, speciesKey2, mapKey1, mapKey2);
 
-        System.out.println("getting orthologs");
-        List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(MapManager.getInstance().getMap(mapKey1).getSpeciesTypeKey(),MapManager.getInstance().getMap(mapKey2).getSpeciesTypeKey(),mapKey1,mapKey2);
-        FileWriter fw = new FileWriter(new File(outputDirectory + "/" + assembly1 + "-" + assembly2 +".anchors"));
+        String anchorsFile = outputDirectory + "/" + assembly1 + "-" + assembly2 + ".anchors";
+        FileWriter fw = new FileWriter(new File(anchorsFile));
         for (MappedOrtholog mo: ortho) {
             String row = "";
             row += mo.getSrcGeneSymbol() + "\t";
@@ -208,6 +214,7 @@ public class Manager {
             fw.write(row + "\n");
         }
         fw.close();
+        logger.info("      orthologs written: "+Utils.formatThousands(ortho.size())+"  -> "+anchorsFile);
 
 String orthologyTemplate = """
         {
@@ -263,14 +270,15 @@ String orthologyTemplate = """
 
 """;
 
-        String track = assembly1 + " (" + SpeciesType.getCommonName(MapManager.getInstance().getMap(mapKey1).getSpeciesTypeKey()) + ") - " + assembly2 + " (" +  SpeciesType.getCommonName(MapManager.getInstance().getMap(mapKey2).getSpeciesTypeKey()) + ")";
+        String track = assembly1 + " (" + species1 + ") - " + assembly2 + " (" + species2 + ")";
         orthologyTemplate = orthologyTemplate.replaceAll("assembly1",assembly1);
         orthologyTemplate = orthologyTemplate.replaceAll("assembly2",assembly2);
         orthologyTemplate = orthologyTemplate.replaceAll("trackName",track);
-        fw = new FileWriter(new File(outputDirectory + "/" + assembly1 + "-" + assembly2 +".json"));
+        String jsonFile = outputDirectory + "/" + assembly1 + "-" + assembly2 + ".json";
+        fw = new FileWriter(new File(jsonFile));
         fw.write(orthologyTemplate);
         fw.close();
-
+        logger.info("      track json written:        -> "+jsonFile);
     }
 
 
