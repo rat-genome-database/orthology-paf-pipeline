@@ -5,8 +5,8 @@ import edu.mcw.rgd.dao.impl.MapDAO;
 import edu.mcw.rgd.dao.impl.OrthologDAO;
 import edu.mcw.rgd.datamodel.MappedGene;
 import edu.mcw.rgd.datamodel.MappedOrtholog;
-import edu.mcw.rgd.datamodel.Ortholog;
 import edu.mcw.rgd.datamodel.SpeciesType;
+import edu.mcw.rgd.process.MemoryMonitor;
 import edu.mcw.rgd.process.Utils;
 import edu.mcw.rgd.process.mapping.MapManager;
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +18,6 @@ import org.springframework.core.io.FileSystemResource;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -92,6 +91,9 @@ public class Manager {
 
         Date time0 = Calendar.getInstance().getTime();
 
+        MemoryMonitor memoryMonitor = new MemoryMonitor();
+        memoryMonitor.start();
+
         HashMap<Integer,Boolean> processed = new HashMap<Integer,Boolean>();
 
         try {
@@ -135,6 +137,8 @@ public class Manager {
             throw e;
         }
 
+        memoryMonitor.stop();
+        manager.logger.info(memoryMonitor.getSummary());
         manager.logger.info("=== OK === elapsed time " + Utils.formatElapsedTime(time0.getTime(), System.currentTimeMillis()));
         manager.logger.info("");
     }
