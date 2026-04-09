@@ -170,7 +170,7 @@ public class Manager {
         }
         fw.close();
 
-        logger.info("     genes written: "+Utils.formatThousands(mg.size())+"  -> "+bedFile);
+        logger.info("     genes written: "+Utils.formatThousands(mg.size()));
     }
 
 
@@ -214,7 +214,7 @@ public class Manager {
             fw.write(row + "\n");
         }
         fw.close();
-        logger.info("      orthologs written: "+Utils.formatThousands(ortho.size())+"  -> "+anchorsFile);
+        logger.info("      orthologs written: "+Utils.formatThousands(ortho.size()));
 
 String orthologyTemplate = """
         {
@@ -278,7 +278,6 @@ String orthologyTemplate = """
         fw = new FileWriter(new File(jsonFile));
         fw.write(orthologyTemplate);
         fw.close();
-        logger.info("      track json written:        -> "+jsonFile);
     }
 
 
