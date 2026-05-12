@@ -1,7 +1,5 @@
 package edu.mcw.rgd.OrthologyPafPipeline;
 
-import edu.mcw.rgd.dao.impl.GeneDAO;
-import edu.mcw.rgd.dao.impl.OrthologDAO;
 import edu.mcw.rgd.datamodel.MappedGene;
 import edu.mcw.rgd.datamodel.MappedOrtholog;
 import edu.mcw.rgd.datamodel.SpeciesType;
@@ -24,15 +22,8 @@ import java.util.*;
  */
 public class Manager {
 
-    public static final int INSERT_COUNTER = 0;
-    public static final int UPDATE_COUNTER = 1;
-
     private String version;
     Logger logger = LogManager.getLogger("status");
-    private int transitiveOrthologPipelineId;
-    private String xrefDataSrc;
-    private String xrefDataSet;
-    private int transitiveOrthologType;
     private Dao dao;
 
     /**
@@ -114,7 +105,6 @@ public class Manager {
                     String key2 = entry2.getKey();
                     Integer value2 = entry2.getValue();
 
-                    //if (!key.equals(key2)) {
                     if (MapManager.getInstance().getMap(value).getSpeciesTypeKey() != MapManager.getInstance().getMap(value2).getSpeciesTypeKey()) {
 
                         if (!processed.containsKey(value2)) {
@@ -124,13 +114,7 @@ public class Manager {
 
                 }
                 processed.put(value,true);
-
-//                assemblies.remove(key);
-
             }
-
-
-               // manager.run(assembly1, mapKey1, assembly2, mapKey2, outputDirectory);
         } catch(Exception e) {
             Utils.printStackTrace(e, manager.logger);
             throw e;
@@ -149,8 +133,7 @@ public class Manager {
 
         logger.info("BED: "+species+" "+assembly+" (map_key="+mapKey+")");
 
-        GeneDAO gdao = new GeneDAO();
-        List<MappedGene> mg = gdao.getActiveMappedGenes(mapKey);
+        List<MappedGene> mg = dao.getActiveMappedGenes(mapKey);
 
         FileWriter fw = new FileWriter(new File(bedFile));
         for (MappedGene mo: mg) {
@@ -173,24 +156,6 @@ public class Manager {
         logger.info("     genes written: "+Utils.formatThousands(mg.size()));
     }
 
-
-    /*
-    Col	Type	Description
-1	string	Query sequence name
-2	int	Query sequence length
-3	int	Query start (0-based; BED-like; closed)
-4	int	Query end (0-based; BED-like; open)
-5	char	Relative strand: "+" or "-"
-6	string	Target sequence name
-7	int	Target sequence length
-8	int	Target start on original strand (0-based)
-9	int	Target end on original strand (0-based)
-10	int	Number of residue matches
-11	int	Alignment block length
-12	int	Mapping quality (0-255; 255 for missing)
-
-     */
-
     public void run(String assembly1, int mapKey1, String assembly2, int mapKey2, String outputDirectory) throws Exception {
 
         int speciesKey1 = MapManager.getInstance().getMap(mapKey1).getSpeciesTypeKey();
@@ -201,8 +166,7 @@ public class Manager {
 
         logger.info("PAIR: "+pairLabel);
 
-        OrthologDAO odao = new OrthologDAO();
-        List<MappedOrtholog> ortho = odao.getAllMappedOrthologs(speciesKey1, speciesKey2, mapKey1, mapKey2);
+        List<MappedOrtholog> ortho = dao.getAllMappedOrthologs(speciesKey1, speciesKey2, mapKey1, mapKey2);
 
         String anchorsFile = outputDirectory + "/" + assembly1 + "-" + assembly2 + ".anchors";
         FileWriter fw = new FileWriter(new File(anchorsFile));
@@ -288,31 +252,6 @@ String orthologyTemplate = """
 
     public String getVersion() {
         return version;
-    }
-
-
-    public void setXrefDataSrc(String xrefDataSrc) {
-        this.xrefDataSrc = xrefDataSrc;
-    }
-
-    public String getXrefDataSrc() {
-        return xrefDataSrc;
-    }
-
-    public void setXrefDataSet(String xrefDataSet) {
-        this.xrefDataSet = xrefDataSet;
-    }
-
-    public String getXrefDataSet() {
-        return xrefDataSet;
-    }
-
-    public void setTransitiveOrthologType(int transitiveOrthologType) {
-        this.transitiveOrthologType = transitiveOrthologType;
-    }
-
-    public int getTransitiveOrthologType() {
-        return transitiveOrthologType;
     }
 
     public void setDao(Dao dao) {

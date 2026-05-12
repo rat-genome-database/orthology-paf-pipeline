@@ -1,3 +1,6 @@
+May 12, 2026
+  Manager: routed DB access through Dao wrapper; removed dead fields, constants, and stale comments; updated dependencies
+
 Apr 20, 2026
   updated dependencies
 
