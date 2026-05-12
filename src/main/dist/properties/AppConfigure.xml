@@ -1,10 +1,7 @@
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
 <beans>
 	<bean id="main" class="edu.mcw.rgd.OrthologyPafPipeline.Manager">
-        <property name="version" value="orthology-paf-pipeline   -- build Apr 20, 2026" />
-
-		<property name="xrefDataSrc" value="Orthology PAF Pipeline" />
-		<property name="xrefDataSet" value="Orthology PAF Pipeline" />
+        <property name="version" value="orthology-paf-pipeline   -- build May 12, 2026" />
 		<property name="dao" ref="dao" />
 	</bean>
 
