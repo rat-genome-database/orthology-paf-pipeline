@@ -14,6 +14,7 @@ import org.springframework.core.io.FileSystemResource;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -135,23 +136,23 @@ public class Manager {
 
         List<MappedGene> mg = dao.getActiveMappedGenes(mapKey);
 
-        FileWriter fw = new FileWriter(new File(bedFile));
-        for (MappedGene mo: mg) {
-            String row = "";
+        try (FileWriter fw = new FileWriter(new File(bedFile), StandardCharsets.UTF_8)) {
+            for (MappedGene mo: mg) {
+                String row = "";
 
-            if (mo.getChromosome().startsWith("N") || mo.getChromosome().startsWith("M")) {
-                row += mo.getChromosome() + "\t";
-            }else {
-                row += "Chr" + mo.getChromosome() + "\t";
+                if (mo.getChromosome().startsWith("N") || mo.getChromosome().startsWith("M")) {
+                    row += mo.getChromosome() + "\t";
+                }else {
+                    row += "Chr" + mo.getChromosome() + "\t";
+                }
+                row += mo.getStart() + "\t";
+                row += mo.getStop() + "\t";
+                row += mo.getGene().getSymbol() + "\t";
+                row += "0\t";
+                row += mo.getStrand();
+                fw.write(row + "\n");
             }
-            row += mo.getStart() + "\t";
-            row += mo.getStop() + "\t";
-            row += mo.getGene().getSymbol() + "\t";
-            row += "0\t";
-            row += mo.getStrand();
-            fw.write(row + "\n");
         }
-        fw.close();
 
         logger.info("     genes written: "+Utils.formatThousands(mg.size()));
     }
@@ -169,15 +170,15 @@ public class Manager {
         List<MappedOrtholog> ortho = dao.getAllMappedOrthologs(speciesKey1, speciesKey2, mapKey1, mapKey2);
 
         String anchorsFile = outputDirectory + "/" + assembly1 + "-" + assembly2 + ".anchors";
-        FileWriter fw = new FileWriter(new File(anchorsFile));
-        for (MappedOrtholog mo: ortho) {
-            String row = "";
-            row += mo.getSrcGeneSymbol() + "\t";
-            row += mo.getDestGeneSymbol() + "\t";
-            row += "100\t";
-            fw.write(row + "\n");
+        try (FileWriter fw = new FileWriter(new File(anchorsFile), StandardCharsets.UTF_8)) {
+            for (MappedOrtholog mo: ortho) {
+                String row = "";
+                row += mo.getSrcGeneSymbol() + "\t";
+                row += mo.getDestGeneSymbol() + "\t";
+                row += "100\t";
+                fw.write(row + "\n");
+            }
         }
-        fw.close();
         logger.info("      orthologs written: "+Utils.formatThousands(ortho.size()));
 
 String orthologyTemplate = """
@@ -214,7 +215,7 @@ String orthologyTemplate = """
             "displays": [
             {
                 "type":"DotplotDisplay",
-                    "displayId":"assembly12assmbly2.anchors-DotplotDisplay"
+                    "displayId":"assembly12assembly2.anchors-DotplotDisplay"
             },
             {
                 "type":"LinearComparativeDisplay",
@@ -235,13 +236,13 @@ String orthologyTemplate = """
 """;
 
         String track = assembly1 + " (" + species1 + ") - " + assembly2 + " (" + species2 + ")";
-        orthologyTemplate = orthologyTemplate.replaceAll("assembly1",assembly1);
-        orthologyTemplate = orthologyTemplate.replaceAll("assembly2",assembly2);
-        orthologyTemplate = orthologyTemplate.replaceAll("trackName",track);
+        orthologyTemplate = orthologyTemplate.replace("assembly1",assembly1);
+        orthologyTemplate = orthologyTemplate.replace("assembly2",assembly2);
+        orthologyTemplate = orthologyTemplate.replace("trackName",track);
         String jsonFile = outputDirectory + "/" + assembly1 + "-" + assembly2 + ".json";
-        fw = new FileWriter(new File(jsonFile));
-        fw.write(orthologyTemplate);
-        fw.close();
+        try (FileWriter fw = new FileWriter(new File(jsonFile), StandardCharsets.UTF_8)) {
+            fw.write(orthologyTemplate);
+        }
     }
 
 
