@@ -1,3 +1,7 @@
+Sep 14, 2026
+  run.sh bug fix: quoted globs prevented output-dir cleanup and the scp publish to the JBrowse server;
+    updated dependencies
+
 Jun 9, 2026
   Dao: removed dead copy-pasted code; fixed FileWriter resource leaks; dropped unused dependencies; minor cleanups
 

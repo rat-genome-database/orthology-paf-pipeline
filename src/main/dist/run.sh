@@ -9,7 +9,7 @@ APPDIR=/home/rgddata/pipelines/$APPNAME
 
 cd $APPDIR
 
-rm -rf "${APPDIR}/out/*"
+rm -rf "${APPDIR}/out"/*
 
 java -Dspring.config=$APPDIR/../properties/default_db2.xml \
     -Dlog4j.configurationFile=file://$APPDIR/properties/log4j2.xml \
@@ -17,5 +17,5 @@ java -Dspring.config=$APPDIR/../properties/default_db2.xml \
 
 SERVER=`hostname -s | tr '[a-z]' '[A-Z]'`
 if [ "$SERVER" == "REED" ]; then
-  scp "${APPDIR}/out/*" rgdpub@pipelines.rgd.mcw.edu:/data/data/jbrowse2/orthology/
+  scp "${APPDIR}/out"/* rgdpub@pipelines.rgd.mcw.edu:/data/data/jbrowse2/orthology/
 fi
